@@ -45,7 +45,7 @@ def logout(request):
     if request.method == 'POST':
         #global loggedin_farmer
         #loggedin_farmer = {}
-        response = HttpResponseRedirect('/dbms/login/')
+        response = HttpResponseRedirect('/dbms/dashboard/')
         response.delete_cookie('username')
         return HttpResponseRedirect('/dbms/')
 
