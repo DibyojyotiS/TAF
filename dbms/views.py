@@ -1,24 +1,14 @@
 from django.shortcuts import render
 from django.http import HttpResponse, Http404, HttpResponseRedirect
 from .models import Data, Land, Blog, Request, Served_Request, Crop, Message
-# from django.core.mail import send_mail
+#import datetime 
 
-loggedin_farmer = {}
-
-# def default(request):
-#     return HttpResponseRedirect('/dbms/')
+#loggedin_farmer = {}
 
 def default(request):
     return HttpResponseRedirect('/dbms/') 
 
 def index(request):
-    #     send_mail(
-    #     'Subject here',
-    #     'Here is the message.',
-    #     'from@example.com',
-    #     ['dibyojyoti21century@gmail.com'],
-    #     fail_silently=False,
-    # )
     return render(request, 'dbms/index.html', {'blogs': Blog.objects.all()})
 
 
@@ -41,11 +31,10 @@ def login(request):
             return render(request, 'dbms/index.html', {'username_status': 'Username DOES NOT EXIST!', 'username': user_name})
             #raise Http404("Incorrect  User Name")
         if(farmer.password == password):
-            global loggedin_farmer
-            loggedin_farmer = farmer
-            return HttpResponseRedirect('/dbms/dashboard/')
-            # return dashboard(request, farmer)
-            # return render(request, 'dbms/dashboard.html', {'farmer': farmer})
+            #global loggedin_farmer
+            response = HttpResponseRedirect('/dbms/dashboard/')
+            response.set_cookie('username', farmer.user_name)#, datetime.datetime.now())
+            return response
         else:
             return render(request, 'dbms/index.html', {'pwd_status': 'INCORRECT PASSWORD!', 'username': user_name})
     else:
@@ -54,8 +43,10 @@ def login(request):
 
 def logout(request):
     if request.method == 'POST':
-        global loggedin_farmer
-        loggedin_farmer = {}
+        #global loggedin_farmer
+        #loggedin_farmer = {}
+        response = HttpResponseRedirect('/dbms/dashboard/')
+        response.delete_cookie('username')
         return HttpResponseRedirect('/dbms/')
 
 
@@ -99,99 +90,107 @@ def submit(request):
 
 
 def dashboard(request):
-    global loggedin_farmer
-    username = loggedin_farmer.user_name
-    return render(request, 'dbms/dashboard.html', {'farmer': loggedin_farmer, 'lands': Land.objects.filter(user_name=username), 'crops': Crop.objects.all()})
+    if 'username' in request.COOKIES:
+        username = request.COOKIES['username']
+        return render(request, 'dbms/dashboard.html', {'farmer': Data.objects.get(pk=username), 'lands': Land.objects.filter(user_name=username), 'crops': Crop.objects.all()})
 
 
 def add_land(request):
     if request.method == 'POST':
         data = request.POST.dict()
-        global loggedin_farmer
-        user_name = loggedin_farmer.user_name
-        for land in Land.objects.filter(user_name=user_name):
-            if land.land_address.lower() == data.get('land_address').lower():
-                if land.land_name.lower() == data.get('land_name').lower():
-                    return HttpResponseRedirect('/dbms/dashboard/')
-        land_data = Land(
-            user_name=loggedin_farmer,
-            land_name=data.get('land_name'),
-            land_address=data.get('land_address'),
-            district=data.get('district'),
-            soil_type=data.get('soil_type'),
-            crop_grown=data.get('crop_grown'),
-            moisture_requirement=data.get('moisture_requirement'),
-            threshold_moisture=data.get('threshold_moisture'),
-            expected_yield=data.get('expected_yield'),
-            expected_price=data.get('expected_price'),
-        )
-        land_data.save()
-        return HttpResponseRedirect('/dbms/dashboard/')
+        if 'username' in request.COOKIES:
+            user_name = request.COOKIES['username']
+            farmer = Data.objects.get(pk=user_name)
+            for land in Land.objects.filter(user_name=user_name):
+                if land.land_address.lower() == data.get('land_address').lower():
+                    if land.land_name.lower() == data.get('land_name').lower():
+                        return HttpResponseRedirect('/dbms/dashboard/')
+            land_data = Land(
+                user_name=farmer,
+                land_name=data.get('land_name'),
+                land_address=data.get('land_address'),
+                district=data.get('district'),
+                soil_type=data.get('soil_type'),
+                crop_grown=data.get('crop_grown'),
+                moisture_requirement=data.get('moisture_requirement'),
+                threshold_moisture=data.get('threshold_moisture'),
+                expected_yield=data.get('expected_yield'),
+                expected_price=data.get('expected_price'),
+            )
+            land_data.save()
+            return HttpResponseRedirect('/dbms/dashboard/')
 
 
 def request_irrigation(request):
     if request.method == 'POST':
         data = request.POST.dict()
-        global loggedin_farmer
-        req_data = Request(
-            user_name=loggedin_farmer,
-            land_name=data.get('land_name'),
-            land_address=data.get('land_address'),
-            district=data.get('district')
-        )
-        req_data.save()
-        return HttpResponseRedirect('/dbms/dashboard/')
+        if 'username' in request.COOKIES:
+            username = request.COOKIES['username']
+            req_data = Request(
+                user_name=Data.objects.get(pk = username),
+                land_name=data.get('land_name'),
+                land_address=data.get('land_address'),
+                district=data.get('district')
+            )
+            req_data.save()
+            return HttpResponseRedirect('/dbms/dashboard/')
 
 
 def cancel_request(request):
     if request.method == 'POST':
         data = request.POST.dict()
-        global loggedin_farmer
-        req_data = Request.objects.get(user_name=loggedin_farmer, land_name=data.get(
-            'land_name'), land_address=data.get('land_address'), district=data.get('district'))
-        land = Land.objects.get(user_name=loggedin_farmer, land_name=data.get(
-            'land_name'), land_address=data.get('land_address'), district=data.get('district'))
-        req_data.delete()
-        land.request_status = 'False'
-        land.save()
-        return HttpResponseRedirect('/dbms/dashboard/')
+        if 'username' in request.COOKIES:
+            username = request.COOKIES['username']
+            loggedin_farmer = Data.objects.get(pk = username)
+            req_data = Request.objects.get(user_name=loggedin_farmer, land_name=data.get(
+                'land_name'), land_address=data.get('land_address'), district=data.get('district'))
+            land = Land.objects.get(user_name=loggedin_farmer, land_name=data.get(
+                'land_name'), land_address=data.get('land_address'), district=data.get('district'))
+            req_data.delete()
+            land.request_status = 'False'
+            land.save()
+            return HttpResponseRedirect('/dbms/dashboard/')
 
 
 def deactivate_request(request):
     if request.method == 'POST':
         data = request.POST.dict()
-        global loggedin_farmer
-        req_data = Served_Request.objects.get(user_name=loggedin_farmer, land_name=data.get(
-            'land_name'), land_address=data.get('land_address'), district=data.get('district'))
-        land = Land.objects.get(user_name=loggedin_farmer, land_name=data.get(
-            'land_name'), land_address=data.get('land_address'), district=data.get('district'))
-        req_data.delete()
-        land.request_status = 'False'
-        land.system_id = 'None'
-        land.save()
-        return HttpResponseRedirect('/dbms/dashboard/')
+        if 'username' in request.COOKIES:
+            username = request.COOKIES['username']
+            loggedin_farmer = Data.objects.get(pk = username)
+            req_data = Served_Request.objects.get(user_name=loggedin_farmer, land_name=data.get(
+                'land_name'), land_address=data.get('land_address'), district=data.get('district'))
+            land = Land.objects.get(user_name=loggedin_farmer, land_name=data.get(
+                'land_name'), land_address=data.get('land_address'), district=data.get('district'))
+            req_data.delete()
+            land.request_status = 'False'
+            land.system_id = 'None'
+            land.save()
+            return HttpResponseRedirect('/dbms/dashboard/')
 
 
 def delete_land(request):
     if request.method == 'POST':
         data = request.POST.dict()
-        global loggedin_farmer
-        try:
-            req_data = Served_Request.objects.get(user_name=loggedin_farmer, land_name=data.get(
+        if 'username' in request.COOKIES:
+            username = request.COOKIES['username']
+            loggedin_farmer = Data.objects.get(pk = username)
+            try:
+                req_data = Served_Request.objects.get(user_name=loggedin_farmer, land_name=data.get(
+                    'land_name'), land_address=data.get('land_address'), district=data.get('district'))
+                req_data.delete()
+            except Served_Request.DoesNotExist:
+                pass
+            try:
+                req = Request.objects.get(user_name=loggedin_farmer, land_name=data.get(
+                    'land_name'), land_address=data.get('land_address'), district=data.get('district'))
+                req.delete()
+            except Request.DoesNotExist:
+                pass
+            land = Land.objects.get(user_name=loggedin_farmer, land_name=data.get(
                 'land_name'), land_address=data.get('land_address'), district=data.get('district'))
-            req_data.delete()
-        except Served_Request.DoesNotExist:
-            pass
-        try:
-            req = Request.objects.get(user_name=loggedin_farmer, land_name=data.get(
-                'land_name'), land_address=data.get('land_address'), district=data.get('district'))
-            req.delete()
-        except Request.DoesNotExist:
-            pass
-        land = Land.objects.get(user_name=loggedin_farmer, land_name=data.get(
-            'land_name'), land_address=data.get('land_address'), district=data.get('district'))
-        land.delete()
-        return HttpResponseRedirect('/dbms/dashboard/')
+            land.delete()
+            return HttpResponseRedirect('/dbms/dashboard/')
 
 
 def device(request):
@@ -219,24 +218,72 @@ def device(request):
 
 def edit_land(request):
     if request.method == 'POST':
-        data = request.POST.dict()
-        user_name = loggedin_farmer.user_name
-        land_name = data.get('land_name')
-        land_address = data.get('land_address')
-        district = data.get('district')
+        if 'username' in request.COOKIES:
+            username = request.COOKIES['username']
+            loggedin_farmer = Data.objects.get(pk = username)
+            data = request.POST.dict()
+            user_name = loggedin_farmer.user_name
+            land_name = data.get('land_name')
+            land_address = data.get('land_address')
+            district = data.get('district')
 
-        new_soil_type = data.get('soil_type')
-        new_crop_grown = data.get('crop_grown')
-        new_moisture_requirement = data.get('moisture_requirement')
-        new_threshold_moisture = data.get('threshold_moisture')
-        new_expected_yield = data.get('expected_yield')
-        new_expected_price = data.get('expected_price')
-        for land in Land.objects.filter(user_name = user_name, land_name=land_name, land_address=land_address, district=district):
-            land.soil_type = new_soil_type
-            land.crop_grown = new_crop_grown
-            land.moisture_requirement = new_moisture_requirement
-            land.threshold_moisture = new_threshold_moisture
-            land.expected_yield = new_expected_yield
-            land.expected_price = new_expected_price
-            land.save()
-        return HttpResponseRedirect('/dbms/dashboard/')
+            new_soil_type = data.get('soil_type')
+            new_crop_grown = data.get('crop_grown')
+            new_moisture_requirement = data.get('moisture_requirement')
+            new_threshold_moisture = data.get('threshold_moisture')
+            new_expected_yield = data.get('expected_yield')
+            new_expected_price = data.get('expected_price')
+            for land in Land.objects.filter(user_name = user_name, land_name=land_name, land_address=land_address, district=district):
+                land.soil_type = new_soil_type
+                land.crop_grown = new_crop_grown
+                land.moisture_requirement = new_moisture_requirement
+                land.threshold_moisture = new_threshold_moisture
+                land.expected_yield = new_expected_yield
+                land.expected_price = new_expected_price
+                land.save()
+            return HttpResponseRedirect('/dbms/dashboard/')
+
+
+
+
+
+
+# from django.template import RequestContext
+
+# def login(request):
+#    username = "not logged in"
+   
+#    if request.method == "POST":
+#       #Get the posted form
+#       MyLoginForm = LoginForm(request.POST)
+   
+#    if MyLoginForm.is_valid():
+#       username = MyLoginForm.cleaned_data['username']
+#    else:
+#       MyLoginForm = LoginForm()
+   
+#    response = render_to_response(request, 'loggedin.html', {"username" : username}, 
+#       context_instance = RequestContext(request))
+   
+#    response.set_cookie('last_connection', datetime.datetime.now())
+#    response.set_cookie('username', datetime.datetime.now())
+	
+#    return response
+
+
+# def formView(request):
+#    if 'username' in request.COOKIES and 'last_connection' in request.COOKIES:
+#       username = request.COOKIES['username']
+      
+#       last_connection = request.COOKIES['last_connection']
+#       last_connection_time = datetime.datetime.strptime(last_connection[:-7], 
+#          "%Y-%m-%d %H:%M:%S")
+      
+#       if (datetime.datetime.now() - last_connection_time).seconds < 10:
+#          return render(request, 'loggedin.html', {"username" : username})
+#       else:
+#          return render(request, 'login.html', {})
+			
+#    else:
+#       return render(request, 'login.html', {})
+
