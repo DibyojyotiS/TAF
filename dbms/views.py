@@ -45,6 +45,8 @@ def logout(request):
         response = HttpResponseRedirect('/dbms/')
         response.delete_cookie('username')
         return response
+    else:
+        return render(request, 'dbms/index.html')
 
 
 def message(request):
@@ -58,6 +60,8 @@ def message(request):
         )
         message.save()
         return HttpResponseRedirect('/dbms/')
+    else:
+        return render(request, 'dbms/index.html')
 
 
 def submit(request):
@@ -84,12 +88,15 @@ def submit(request):
 
         else:
             return render(request, 'dbms/index.html', {'username_status': 'USERNAME ALREADY EXISTS ! TRY SOMETHING ELSE...', 'data': data, 'blogs': Blog.objects.all()})
-
+    else:
+        return render(request, 'dbms/index.html')
 
 def dashboard(request):
     if 'username' in request.COOKIES:
         username = request.COOKIES['username']
         return render(request, 'dbms/dashboard.html', {'farmer': Data.objects.get(pk=username), 'lands': Land.objects.filter(user_name=username), 'crops': Crop.objects.all()})
+    else:
+        return render(request, 'dbms/index.html')
 
 
 def add_land(request):
@@ -116,6 +123,10 @@ def add_land(request):
             )
             land_data.save()
             return HttpResponseRedirect('/dbms/dashboard/')
+        else:
+            return render(request, 'dbms/index.html')
+    else:
+        return render(request, 'dbms/index.html')
 
 
 def request_irrigation(request):
@@ -131,6 +142,10 @@ def request_irrigation(request):
             )
             req_data.save()
             return HttpResponseRedirect('/dbms/dashboard/')
+        else:
+            return render(request, 'dbms/index.html')
+    else:
+        return render(request, 'dbms/index.html')
 
 
 def cancel_request(request):
@@ -147,6 +162,10 @@ def cancel_request(request):
             land.request_status = 'False'
             land.save()
             return HttpResponseRedirect('/dbms/dashboard/')
+        else:
+            return render(request, 'dbms/index.html')
+    else:
+        return render(request, 'dbms/index.html')
 
 
 def deactivate_request(request):
@@ -164,6 +183,10 @@ def deactivate_request(request):
             land.system_id = 'None'
             land.save()
             return HttpResponseRedirect('/dbms/dashboard/')
+        else:
+            return render(request, 'dbms/index.html')
+    else:
+        return render(request, 'dbms/index.html')
 
 
 def delete_land(request):
@@ -188,6 +211,10 @@ def delete_land(request):
                 'land_name'), land_address=data.get('land_address'), district=data.get('district'))
             land.delete()
             return HttpResponseRedirect('/dbms/dashboard/')
+        else:
+            return render(request, 'dbms/index.html')
+    else:
+        return render(request, 'dbms/index.html')
 
 
 def device(request):
@@ -239,6 +266,10 @@ def edit_land(request):
                 land.expected_price = new_expected_price
                 land.save()
             return HttpResponseRedirect('/dbms/dashboard/')
+        else:
+            return render(request, 'dbms/index.html')
+    else:
+        return render(request, 'dbms/index.html')
 
 
 
