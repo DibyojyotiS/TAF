@@ -31,9 +31,9 @@ def login(request):
             return render(request, 'dbms/index.html', {'username_status': 'Username DOES NOT EXIST!', 'username': user_name})
             #raise Http404("Incorrect  User Name")
         if(farmer.password == password):
-            response = HttpResponseRedirect('/')
+            response = HttpResponseRedirect('/dbms/dashboard/')
             response.set_cookie('username', farmer.user_name)#, datetime.datetime.now())
-            return HttpResponseRedirect('/dbms/dashboard/')
+            return response
         else:
             return render(request, 'dbms/index.html', {'pwd_status': 'INCORRECT PASSWORD!', 'username': user_name})
     else:
@@ -42,9 +42,9 @@ def login(request):
 
 def logout(request):
     if request.method == 'POST':
-        response = HttpResponseRedirect('/')
+        response = HttpResponseRedirect('/dbms/')
         response.delete_cookie('username')
-        return HttpResponseRedirect('/dbms/')
+        return response
 
 
 def message(request):
