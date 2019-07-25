@@ -9,7 +9,7 @@ class Data(models.Model):
     mobile_number = models.CharField(max_length=10)
     residence = models.CharField(max_length=200)
     aadhar = models.CharField(max_length=12)
-    password = models.CharField(max_length=12)
+    password = models.CharField(max_length=194)
     def __str__(self):
         return self.user_name
 

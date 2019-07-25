@@ -1,15 +1,21 @@
 from django.shortcuts import render
 from django.http import HttpResponse, Http404, HttpResponseRedirect
 from .models import Data, Land, Blog, Request, Served_Request, Crop, Message
-#import datetime 
+from .password import hash_password, verify_password
 
-#loggedin_farmer = {}
+# Whach this video: https://youtu.be/T1QEs3mdJoc
 
 def default(request):
     return HttpResponseRedirect('/dbms/') 
 
 def index(request):
-    return render(request, 'dbms/index.html', {'blogs': Blog.objects.all()})
+    cookie_alert = 'false'
+    # if request.session.test_cookie_worked():
+    #     request.session.delete_test_cookie()
+    # else:
+    #     cookie_alert = 'true'
+    # print(request.session.test_cookie_worked())
+    return render(request, 'dbms/index.html', {'blogs': Blog.objects.all(), 'cookie_alert':cookie_alert})
 
 
 def farmerSearch(request):
@@ -30,7 +36,7 @@ def login(request):
         except Data.DoesNotExist:
             return render(request, 'dbms/index.html', {'username_status': 'Username DOES NOT EXIST!', 'username': user_name})
             #raise Http404("Incorrect  User Name")
-        if(farmer.password == password):
+        if(verify_password(farmer.password, password)):
             response = HttpResponseRedirect('/dbms/dashboard/')
             response.set_cookie('username', farmer.user_name)#, datetime.datetime.now())
             return response
@@ -80,7 +86,7 @@ def submit(request):
                 residence=data.get('residence'),
                 aadhar=data.get('aadhar'),
                 user_name=data.get('user_name'),
-                password=data.get('password'),
+                password=hash_password(data.get('password')),
             )
             farmer.save()
             # return HttpResponse("%s Thanks for Registering with us !" % Name)

@@ -18,6 +18,11 @@
 			window.scrollTo(0, 1);
 		}
 	</script>
+	<script>
+		{% if cookie_alert == 'true' %}
+			alert("Please Enable Cookies in your browser.\n Otherwise you won't be able to login");
+		{% endif %}
+	</script>
 	<!--// Meta tag Keywords -->
 	<!-- css files -->
 	<link rel="stylesheet" href="{% static 'css/bootstrap.css'%}">
@@ -1121,6 +1126,7 @@
 			alert("Message Sent");
 		}
 	</script>
+	
 	<!-- //flexSlider (for testimonials) -->
 
 	<!-- //js-scripts -->
