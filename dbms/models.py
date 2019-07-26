@@ -81,6 +81,12 @@ class Served_Request(models.Model):
     def __str__(self):
         return "Username : %s | Land Name: %s" % (self.user_name.user_name, self.land_name)
 
+class Cookie_Reference(models.Model):
+    user_name = models.ForeignKey(Data, on_delete = models.CASCADE)
+    cookie = models.CharField(max_length = 193)
+    def __str__(self):
+       return "Username : %s | Cookie: %s" % (self.user_name.user_name, self.cookie) 
+
 @receiver(post_save, sender = Request)
 def pre_save_handler(sender, **kwargs):
     instance = kwargs.get('instance')

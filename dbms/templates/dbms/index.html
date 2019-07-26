@@ -78,8 +78,9 @@
 							<span class="fa fa-search" aria-hidden="true"></span> FarmerSearch </a>
 					</li>
 					<li>
-						<a href="#" data-toggle="modal" data-target="#myModal1" id="login">
-							<span class="fa fa-unlock-alt" aria-hidden="true"></span> Login </a>
+						<!--Can Someone please beautify this part? - Dibyojyoti-->
+						<a  data-toggle="modal" {% if farmer_loggedin == 'true' %} href="/dbms/dashboard/" {% else %} href="#" data-target="#myModal1" {% endif %}  id="login">
+							<span class="fa fa-unlock-alt" aria-hidden="true"></span>{% if farmer_loggedin == 'true' %} Dashboard {% else %} Login {% endif %}</a>
 					</li>
 					<li>
 						<a href="#" data-toggle="modal" data-target="#myModal2" id="signup">

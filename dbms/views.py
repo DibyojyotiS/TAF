@@ -1,9 +1,11 @@
 from django.shortcuts import render
 from django.http import HttpResponse, Http404, HttpResponseRedirect
-from .models import Data, Land, Blog, Request, Served_Request, Crop, Message
-from .password import hash_password, verify_password
+from .models import Data, Land, Blog, Request, Served_Request, Crop, Message, Cookie_Reference
+from .password import hash, verify
+import random
 
-# Whach this video: https://youtu.be/T1QEs3mdJoc
+# Whach this video: https://youtu.be/T1QEs3mdJoc 
+# Don't do something that lets someone steal cookies... 
 
 def default(request):
     return HttpResponseRedirect('/dbms/') 
@@ -15,7 +17,17 @@ def index(request):
     # else:
     #     cookie_alert = 'true'
     # print(request.session.test_cookie_worked())
-    return render(request, 'dbms/index.html', {'blogs': Blog.objects.all(), 'cookie_alert':cookie_alert})
+    if 'username' in request.COOKIES:
+        cookie = request.COOKIES['username']
+        try:
+            Cookie_Reference.objects.get(cookie = cookie)
+        except Cookie_Reference.DoesNotExist:
+            cookie_detected = 'false'
+        else:
+            cookie_detected = 'true'
+    else:
+        cookie_detected = 'false'
+    return render(request, 'dbms/index.html', {'blogs': Blog.objects.all(), 'cookie_alert': cookie_alert, 'farmer_loggedin': cookie_detected})
 
 
 def farmerSearch(request):
@@ -35,10 +47,16 @@ def login(request):
             farmer = Data.objects.get(pk=user_name)
         except Data.DoesNotExist:
             return render(request, 'dbms/index.html', {'username_status': 'Username DOES NOT EXIST!', 'username': user_name})
-            #raise Http404("Incorrect  User Name")
-        if(verify_password(farmer.password, password)):
+        if(verify(farmer.password, password)):
             response = HttpResponseRedirect('/dbms/dashboard/')
-            response.set_cookie('username', farmer.user_name)#, datetime.datetime.now())
+            string = (str)((int) (random.random()*100)) + farmer.user_name + (str)((int) (random.random()*100))
+            cookie = hash(string)
+            save_cookie = Cookie_Reference(
+                user_name = farmer,
+                cookie = cookie
+            )
+            save_cookie.save()
+            response.set_cookie('username', cookie)
             return response
         else:
             return render(request, 'dbms/index.html', {'pwd_status': 'INCORRECT PASSWORD!', 'username': user_name})
@@ -48,6 +66,9 @@ def login(request):
 
 def logout(request):
     if request.method == 'POST':
+        cookie = request.COOKIES['username']
+        farmers_Cookie = Cookie_Reference.objects.get(cookie = cookie)
+        farmers_Cookie.delete()
         response = HttpResponseRedirect('/dbms/')
         response.delete_cookie('username')
         return response
@@ -86,7 +107,7 @@ def submit(request):
                 residence=data.get('residence'),
                 aadhar=data.get('aadhar'),
                 user_name=data.get('user_name'),
-                password=hash_password(data.get('password')),
+                password=hash(data.get('password')),
             )
             farmer.save()
             # return HttpResponse("%s Thanks for Registering with us !" % Name)
@@ -99,8 +120,10 @@ def submit(request):
 
 def dashboard(request):
     if 'username' in request.COOKIES:
-        username = request.COOKIES['username']
-        return render(request, 'dbms/dashboard.html', {'farmer': Data.objects.get(pk=username), 'lands': Land.objects.filter(user_name=username), 'crops': Crop.objects.all()})
+        cookie = request.COOKIES['username']
+        farmers_Cookie = Cookie_Reference.objects.get(cookie = cookie)
+        user_name = farmers_Cookie.user_name.user_name
+        return render(request, 'dbms/dashboard.html', {'farmer': farmers_Cookie.user_name, 'lands': Land.objects.filter(user_name=user_name), 'crops': Crop.objects.all()})
     else:
         return render(request, 'dbms/index.html')
 
@@ -109,8 +132,10 @@ def add_land(request):
     if request.method == 'POST':
         data = request.POST.dict()
         if 'username' in request.COOKIES:
-            user_name = request.COOKIES['username']
-            farmer = Data.objects.get(pk=user_name)
+            cookie = request.COOKIES['username']
+            farmers_Cookie = Cookie_Reference.objects.get(cookie = cookie)
+            user_name = farmers_Cookie.user_name.user_name
+            farmer = farmers_Cookie.user_name
             for land in Land.objects.filter(user_name=user_name):
                 if land.land_address.lower() == data.get('land_address').lower():
                     if land.land_name.lower() == data.get('land_name').lower():
@@ -139,9 +164,10 @@ def request_irrigation(request):
     if request.method == 'POST':
         data = request.POST.dict()
         if 'username' in request.COOKIES:
-            username = request.COOKIES['username']
+            cookie = request.COOKIES['username']
+            farmers_Cookie = Cookie_Reference.objects.get(cookie = cookie)
             req_data = Request(
-                user_name=Data.objects.get(pk = username),
+                user_name=farmers_Cookie.user_name,
                 land_name=data.get('land_name'),
                 land_address=data.get('land_address'),
                 district=data.get('district')
@@ -158,8 +184,9 @@ def cancel_request(request):
     if request.method == 'POST':
         data = request.POST.dict()
         if 'username' in request.COOKIES:
-            username = request.COOKIES['username']
-            loggedin_farmer = Data.objects.get(pk = username)
+            cookie = request.COOKIES['username']
+            farmers_Cookie = Cookie_Reference.objects.get(cookie = cookie)
+            loggedin_farmer = farmers_Cookie.user_name
             req_data = Request.objects.get(user_name=loggedin_farmer, land_name=data.get(
                 'land_name'), land_address=data.get('land_address'), district=data.get('district'))
             land = Land.objects.get(user_name=loggedin_farmer, land_name=data.get(
@@ -178,8 +205,9 @@ def deactivate_request(request):
     if request.method == 'POST':
         data = request.POST.dict()
         if 'username' in request.COOKIES:
-            username = request.COOKIES['username']
-            loggedin_farmer = Data.objects.get(pk = username)
+            cookie = request.COOKIES['username']
+            farmers_Cookie = Cookie_Reference.objects.get(cookie = cookie)
+            loggedin_farmer = farmers_Cookie.user_name
             req_data = Served_Request.objects.get(user_name=loggedin_farmer, land_name=data.get(
                 'land_name'), land_address=data.get('land_address'), district=data.get('district'))
             land = Land.objects.get(user_name=loggedin_farmer, land_name=data.get(
@@ -199,8 +227,9 @@ def delete_land(request):
     if request.method == 'POST':
         data = request.POST.dict()
         if 'username' in request.COOKIES:
-            username = request.COOKIES['username']
-            loggedin_farmer = Data.objects.get(pk = username)
+            cookie = request.COOKIES['username']
+            farmers_Cookie = Cookie_Reference.objects.get(cookie = cookie)
+            loggedin_farmer = farmers_Cookie.user_name
             try:
                 req_data = Served_Request.objects.get(user_name=loggedin_farmer, land_name=data.get(
                     'land_name'), land_address=data.get('land_address'), district=data.get('district'))
@@ -249,8 +278,9 @@ def device(request):
 def edit_land(request):
     if request.method == 'POST':
         if 'username' in request.COOKIES:
-            username = request.COOKIES['username']
-            loggedin_farmer = Data.objects.get(pk = username)
+            cookie = request.COOKIES['username']
+            farmers_Cookie = Cookie_Reference.objects.get(cookie = cookie)
+            loggedin_farmer = farmers_Cookie.user_name
             data = request.POST.dict()
             user_name = loggedin_farmer.user_name
             land_name = data.get('land_name')
